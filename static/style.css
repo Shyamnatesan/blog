@@ -1,0 +1,175 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap");
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg: #ffffff;
+    --text: #111111;
+    --heading: #2a52be;
+    --muted: #888888;
+    --border: #e0e0e0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 15px;
+    line-height: 1.8;
+    padding: 4rem 2rem;
+    max-width: 100%; /* ensure body doesn't fight container */
+}
+
+.container {
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+nav {
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+nav a {
+    text-decoration: none;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+nav a:hover {
+    color: var(--heading);
+}
+
+/* ── Index page ── */
+
+header {
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--heading);
+    text-decoration: underline;
+    text-underline-offset: 6px;
+}
+
+header p {
+    margin-top: 0.4rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.entries {
+    display: flex;
+    flex-direction: column;
+}
+
+.entry {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 0;
+    text-decoration: none;
+    color: var(--text);
+}
+
+.entry:hover .entry-title {
+    color: var(--heading);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.entry-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.entry-date {
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+/* ── Article page ── */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--heading);
+    text-decoration: underline;
+    text-underline-offset: 6px;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+h1 {
+    font-size: 1.6rem;
+}
+h2 {
+    font-size: 1.3rem;
+}
+h3 {
+    font-size: 1.1rem;
+}
+
+p {
+    margin-bottom: 1.2rem;
+}
+
+a {
+    color: var(--heading);
+}
+
+blockquote {
+    border-left: 3px solid var(--heading);
+    padding-left: 1rem;
+    color: var(--muted);
+    margin: 1.5rem 0;
+    font-style: italic;
+}
+
+ul,
+ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1.2rem;
+}
+
+li {
+    margin-bottom: 0.3rem;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2rem 0;
+}
+
+code {
+    padding: 0.15em 0.4em;
+    font-size: 0.9em;
+}
+
+pre {
+    padding: 1rem;
+    overflow-x: auto;
+    margin-bottom: 1.2rem;
+}
+
+pre code {
+    padding: 0;
+}

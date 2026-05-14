@@ -1,0 +1,26 @@
+# distributed-systems-reading
+
+currently reading, [Patterns of Distributed Systems by Unmesh Joshi & Martin Fowler](https://martinfowler.com/articles/patterns-of-distributed-systems/)
+
+---
+
+## Introduction
+
+Apps are either **stateless** or **stateful**.
+
+- *Stateless* — Web servers → just add more nodes
+- *Stateful* — Databases, caches → needs coordination, not just nodes
+
+**Distributed systems** = making multiple stateful nodes behave as one unified system.
+
+Distributing data means at least one of:
+
+- **Partitioning** — split data across nodes
+- **Replication** — copy data across nodes
+
+---
+
+## Patterns
+
+- [Replication Patterns](distributed-systems-reading-2-replication-patterns.html)
+- [Partitioning Patterns](distributed-systems-reading-3-partitioning-patterns.html)
