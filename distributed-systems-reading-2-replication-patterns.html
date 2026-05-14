@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>distributed-systems-reading-2-replication-patterns</title>
+        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    </head>
+    <body>
+        <div class="container">
+            <nav>
+                <a href="index.html">← Home</a>
+            </nav>
+            <section id="Replication-Patterns">
+<h1>Replication Patterns</h1>
+<section id="WAL-—-Write-Ahead-Log">
+<h3>WAL — Write-Ahead Log</h3>
+<p>Partial updates can leave data inconsistent (e.g. A write request updates 2 files — system crashes after the first. Now data is inconsistent.).</p>
+<p><strong><strong>WAL</strong></strong> writes changes to a log <strong>before</strong> applying them → guarantees atomicity, durability, consistency.</p>
+<p>In distributed systems, replication <strong>is</strong> copying WAL entries to followers.
+A lagging follower replays the log to catch up.</p>
+<hr>
+</section>
+<section id="Leader-Followers">
+<h3>Leader &amp; Followers</h3>
+<p><strong><strong>Problem:</strong></strong> two nodes executing conflicting writes simultaneously → Node A receives “set x=1”, Node B receives “set x=2” — both replicate to followers.
+Some followers apply x=1 then x=2, others apply x=2 then x=1.
+Final value of x differs across the cluster.</p>
+<p><strong><strong>Solution:</strong></strong> one leader handles <strong>all</strong> writes.
+Followers forward requests to the leader. Leader replicates to the cluster.</p>
+<p>Single source of truth. No conflicts.</p>
+<hr>
+</section>
+<section id="Heartbeat-Failure-Detection">
+<h3>Heartbeat &amp; Failure Detection</h3>
+<p><strong><strong>Problem:</strong></strong> Follower does not know when leader is down.</p>
+<p><strong><strong>Solution:</strong></strong> Leader send periodic heartbeat messages to peers. Replication traffic can also serve as a heartbeat.</p>
+<p>No heartbeat for a defined timeout → node marked as down → new election triggered.</p>
+<hr>
+</section>
+<section id="Generation-Clock">
+<h3>Generation Clock</h3>
+<p><strong><strong>Problem 1 — Stale log entries:</strong></strong>
+A leader appends to log, crashes before replicating. Next leader does the same.
+Both come back with conflicting uncommitted entries. Which one wins?</p>
+<p><strong><strong>Problem 2 — Split-brain:</strong></strong>
+Network lag → followers elect a new leader.
+Old leader recovers → two nodes think they’re leader simultaneously.</p>
+<p><strong><strong>Solution:</strong></strong> a monotonically increasing number (called <strong>term</strong> in Raft) per leader reign.</p>
+<ul>
+<li>
+Every node tracks the highest generation clock it has seen
+</li>
+<li>
+Messages from nodes with a <strong>lower</strong> clock are rejected
+</li>
+<li>
+Old leader returns → lower clock → ignored by all nodes → safely demoted
+</li>
+</ul>
+<p>Generation clock is both an ordering tool and a split-brain guard.</p>
+<hr>
+</section>
+<section id="Leader-Election-Raft">
+<h3>Leader Election &amp; Raft</h3>
+<p>Newly elected leader must resolve all uncommitted entries before accepting new requests.</p>
+<p>Naively shipping the full log across nodes during election is expensive.</p>
+<p><strong><strong>Raft</strong></strong> elects the node with the most up-to-date log as the leader — no large log transfers needed.</p>
+<hr>
+</section>
+<section id="High-Water-Mark">
+<h3>High Water Mark</h3>
+<p><strong><strong>Problem:</strong></strong> in large clusters, <code>leader + 1 follower ≠ majority</code>,
+so followers can’t commit on receipt alone.</p>
+<p><strong><strong>High water mark</strong></strong> = index of the latest entry committed by a majority.</p>
+<ul>
+<li>
+Leader maintains it and piggybacks it onto heartbeats
+</li>
+<li>
+Followers commit all log entries <strong>up to</strong> that index on receipt
+</li>
+</ul>
+<p>Roughly maps to Raft’s <code>nextIndex</code> / <code>matchIndex</code>.</p>
+<p><strong><strong>Also solves:</strong></strong></p>
+<ul>
+<li>
+<strong><strong>Log truncation</strong></strong> — entries before the mark are safe to discard
+</li>
+<li>
+<strong><strong>Read consistency</strong></strong> — followers know when they’re caught up enough to serve reads
+</li>
+<li>
+<strong><strong>Follower catch-up</strong></strong> — rejoining node knows exactly which entries it’s missing
+</li>
+</ul>
+<hr>
+</section>
+<section id="Singular-Update-Queue">
+<h3>Singular Update Queue</h3>
+<p><strong><strong>Problem:</strong></strong> concurrent requests (writes, replication, votes) handled synchronously → blocking.</p>
+<p><strong><strong>Solution:</strong></strong> enqueue all commands into a single queue (actor model).</p>
+<pre><code>[ client request  ] ─┐
+[ append entries  ] ─┼─→ queue → single consumer → execute
+[ vote request    ] ─┘
+</code></pre>
+<ul>
+<li>
+Leader stays responsive under high load
+</li>
+<li>
+User requests tracked in a <strong><strong>request waiting list</strong></strong> with callbacks
+</li>
+<li>
+Callback fires once request commits to majority → response sent to client
+</li>
+</ul>
+<hr>
+</section>
+<section id="Idempotent-Receiver">
+<h3>Idempotent Receiver</h3>
+<p><strong><strong>Problem:</strong></strong> leader crashes before sending ack → client retries → request executes twice
+(e.g. double money transfer).</p>
+<p><strong><strong>Solution:</strong></strong></p>
+<ul>
+<li>
+Client registers with the cluster → receives a <code>clientId</code>
+</li>
+<li>
+Every request gets a unique <code>requestId</code>
+</li>
+<li>
+Leader stores responses keyed by <code>clientId + requestId</code>
+</li>
+<li>
+On retry → return stored response, skip re-execution
+</li>
+</ul>
+<p>Client registrations are replicated in the log so any new leader can also deduplicate.</p>
+<hr>
+</section>
+<section id="Single-Socket-Channel">
+<h3>Single Socket Channel</h3>
+<p>Leader and each follower maintain a <strong><strong>single dedicated socket channel</strong></strong>.</p>
+<p>Prevents out-of-order message delivery.</p>
+<hr>
+</section>
+<section id="Versioned-Value-Read-Your-Writes-Consistency">
+<h3>Versioned Value &amp; Read-Your-Writes Consistency</h3>
+<p>Followers can serve reads to reduce leader load — but they may lag behind.</p>
+<p><strong><strong>Problem:</strong></strong> client writes to leader → immediately reads from stale follower → gets old value.</p>
+<p><strong><strong>Solution:</strong></strong></p>
+<ol>
+<li>
+Leader increments a version on every write, returns it to the client
+</li>
+<li>
+Client attaches version to subsequent read requests
+</li>
+<li>
+Receiving node waits until it has replicated up to that version, then responds
+</li>
+</ol>
+<p><strong><strong>Real-world implementations:</strong></strong></p>
+<ul>
+<li>
+<strong>MongoDB, CockroachDB</strong> — Hybrid Clock
+</li>
+<li>
+<strong>Raft-based systems</strong> — High Water Mark
+</li>
+<li>
+<strong>Apache Kafka</strong> — Log index (returned on write)
+</li>
+</ul>
+<hr>
+</section>
+</section>
+
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </body>
+    </html>
